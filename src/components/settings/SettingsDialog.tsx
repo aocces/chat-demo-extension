@@ -28,6 +28,7 @@ import {
   type ThemePreference,
 } from '../../services/settings.js'
 import { useTranslate, type TranslationKey, type TranslationMessage } from '../../i18n/index.js'
+import { isExtensionHost } from '../../utils/extensionHost.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
@@ -213,6 +214,12 @@ const LocationSetting = () => {
     location?.region === 'CN'
       ? provinces.find((item) => item.code === location.province)
       : undefined
+
+  // 浏览器扩展宿主里不显示地区设置：它只用于拼 latest_reminder 的地区字段，
+  // 插件形态下由浏览器本地时区就够，避免多一项要填的东西。
+  if (isExtensionHost) {
+    return null
+  }
 
   return (
     <SettingCell

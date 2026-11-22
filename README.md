@@ -1,75 +1,55 @@
-# chat-demo
+# chat-demo-extension
 
-English | [简体中文](README.zh-CN.md)
+把 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 打包成 Chrome MV3 浏览器扩展。纯前端、无后端，API Key 只保存在浏览器本地。
 
-A static chat demo powered by the DeepSeek API. No application backend is required: the browser connects directly to the configured API service.
+## 功能
 
-You can [try the app online](https://deepseek-ai.github.io/chat-demo/) or download the archive from [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases), extract it, and double-click `index.html` to use it locally without installation or a build. Enter your API key in Settings before your first chat.
+- 侧边栏聊天：点扩展图标打开，独立于当前网页。
+- 网页悬浮球：可拖动、位置记忆；蓝色按钮开侧边栏，白色按钮框选截屏。
+- 截屏即附件：确认截图时自动打开侧边栏，图片直接贴进输入框，不弹独立窗口。
+- 选中即问：右键选中文本，自动引用并打开侧边栏。
+- 快捷键：`Alt+Shift+D` 开侧边栏，`Ctrl+Shift+X` 框选截屏。
+- 独立窗口：侧边栏底部可把同一面板打开为 480×900 窗口。
 
-## Getting started
+## 构建与加载
 
-Install Node.js 22.12+ and pnpm, then run:
+需要 Node.js 22.12+ 与 pnpm：
 
-```sh
-git clone https://github.com/deepseek-ai/chat-demo.git
-cd chat-demo
+```bash
 pnpm install
-pnpm dev
+node extension/build.mjs
 ```
 
-Open http://localhost:8090.
+然后打开 `chrome://extensions`，开启开发者模式，选择「加载已解压的扩展程序」→ 本仓库的 `extension/` 目录。
 
-To build the static site:
+首次使用先在侧边栏「设置 → 数据管理」里填写 DeepSeek API Key。面板产物在 `extension/panel/`，已加入 `.gitignore`，重新构建会覆盖。
 
-```sh
-pnpm build
-```
-
-The output is written to `dist/`. Deploy it to a static web server or open `dist/index.html` directly. Opening the file directly requires browser support for storage on `file://` pages and an API service that permits their cross-origin requests.
-
-## Features
-
-- Multiple conversations with automatic titles, renaming, and deletion; edit prompts, regenerate replies, and switch between message branches.
-- Streaming replies, deep thinking, smart search, link reading, and source citations; stop generation or continue eligible replies.
-- Upload, paste, or drag and drop attachments; use voice input and read replies aloud. A live audio spectrum appears in the first row of the input area while recording on mobile.
-- Markdown, syntax highlighting, KaTeX math, and Mermaid diagrams.
-- Simplified Chinese and English, light and dark themes, mobile layouts, location settings, and chat history import and export.
-
-## Data and storage
-
-Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
-
-History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all local conversations and attachments. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
-
-Settings → Data → Delete all chats clears all local conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
-
-## Development
-
-| Command       | Description                  |
-| ------------- | ---------------------------- |
-| `pnpm dev`    | Start the development server |
-| `pnpm build`  | Build into `dist/`           |
-| `pnpm type`   | Run TypeScript type checks   |
-| `pnpm lint`   | Lint with oxlint             |
-| `pnpm format` | Format with oxfmt            |
-
-[rspack.config.ts](rspack.config.ts) uses `https://api.deepseek.com` by default. Use `createConfig({ apiOrigin, devServer })` to customize the API origin and development server proxy.
-
-Chat uses `deepseek-flash` by default through Anthropic-compatible Messages / Files APIs. Speech features use ASR / TTS endpoints. Requests include extensions for search, link reading, titles, and `latest_reminder`, so the configured service must support the corresponding capabilities. Supported attachment formats are determined by server-side validation.
+## 目录
 
 ```text
-src/
-  app/                 Application layout, themes, and global styles
-  components/          Chat, settings, Markdown, and other UI components
-  i18n/                English and Chinese translations
-  services/
-    api/               API requests, SSE, and protocol types
-    chat/              Conversations, message branches, storage, and history import/export
-    markdown/          Markdown parsing, syntax highlighting, and diagrams
-    speech/            Audio recording and read-aloud playback
-  utils/               Shared utilities
+extension/
+  manifest.json      MV3 清单
+  background.js      侧边栏、截屏、右键菜单、快捷键调度
+  floater.js         网页悬浮球（可拖动）
+  capture.js         框选截屏交互
+  shot-bridge.js     截图 → 输入框附件
+  bridge.js          选中文本 → 输入框
+  build.mjs          构建面板并同步版本
+  verify.mjs         Playwright 端到端验证
+  panel/             由 chat-demo 构建产物生成（gitignore）
 ```
 
-## License
+## 验证
 
-[MIT](LICENSE). The build copies the license to `dist/LICENSE`; include it when distributing the app. Third-party dependencies are subject to their own licenses.
+```bash
+# 需要 playwright-core 与 Chromium
+PLAYWRIGHT_CORE=<playwright-core 目录> node extension/verify.mjs
+```
+
+覆盖面板渲染、API 连通、消息桥接、悬浮球拖动、截屏、附件贴入和“不弹独立窗口”等 25 项。
+
+## 说明
+
+- 截图无法抓取 `chrome://`、扩展商店等受保护页面。
+- 截图时自动打开侧边栏依赖 Chrome 的用户手势；若浏览器拒绝，截图会保留在待处理区，打开侧边栏后自动贴入。
+- 上游项目与许可证见 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo)；本仓库沿用 MIT License。

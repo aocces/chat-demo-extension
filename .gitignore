@@ -9,3 +9,6 @@ build/
 .env.*
 !.env.example
 tmp/
+# 扩展的生成产物与验证截图（由 extension/build.mjs 与 verify.mjs 生成）
+extension/panel/
+extension/*.png
